@@ -1,0 +1,259 @@
+[gd_scene load_steps=25 format=2]
+
+[ext_resource path="res://shadow.png" type="Texture" id=1]
+[ext_resource path="res://player.gd" type="Script" id=2]
+[ext_resource path="res://blob_shadow.gd" type="Script" id=3]
+
+[sub_resource type="CapsuleShape" id=15]
+
+[sub_resource type="CapsuleMesh" id=3]
+
+[sub_resource type="SpatialMaterial" id=4]
+albedo_color = Color( 0.713726, 0.811765, 0.517647, 1 )
+
+[sub_resource type="CapsuleMesh" id=18]
+
+[sub_resource type="SpatialMaterial" id=19]
+flags_transparent = true
+flags_unshaded = true
+albedo_color = Color( 0, 0, 0, 0.501961 )
+
+[sub_resource type="PlaneMesh" id=16]
+
+[sub_resource type="ViewportTexture" id=22]
+viewport_path = NodePath("Player/Capsule/FakeShadowMap/Viewport")
+
+[sub_resource type="SpatialMaterial" id=17]
+resource_local_to_scene = true
+flags_transparent = true
+flags_unshaded = true
+albedo_color = Color( 1, 1, 1, 0.501961 )
+albedo_texture = SubResource( 22 )
+
+[sub_resource type="CapsuleMesh" id=20]
+
+[sub_resource type="SpatialMaterial" id=21]
+flags_unshaded = true
+albedo_color = Color( 0, 0, 0, 1 )
+
+[sub_resource type="PlaneMesh" id=8]
+
+[sub_resource type="Shader" id=9]
+code = "shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_disabled, unshaded;
+uniform vec4 albedo : hint_color;
+uniform sampler2D texture_albedo : hint_albedo;
+uniform float proximity_fade_distance;
+uniform float proximity_fade_far_distance;
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+
+void fragment() {
+	vec2 base_uv = UV;
+	vec4 albedo_tex = texture(texture_albedo, base_uv);
+	ALBEDO = albedo.rgb * albedo_tex.rgb;
+	ALPHA = albedo.a * albedo_tex.a;
+	float depth_tex = textureLod(DEPTH_TEXTURE, SCREEN_UV, 0.0).r;
+	vec4 world_pos = INV_PROJECTION_MATRIX * vec4(SCREEN_UV*2.0-1.0,depth_tex * 2.0-1.0,1.0);
+	world_pos.xyz /= world_pos.w;
+	
+	// Prevent the shadow from displaying in front of objects.
+	ALPHA *= clamp(1.0 - smoothstep(world_pos.z + proximity_fade_distance, world_pos.z, VERTEX.z), 0.0, 1.0);
+	
+	// Fade when far away from a solid surface.
+	ALPHA *= clamp(smoothstep(world_pos.z + proximity_fade_far_distance, world_pos.z, VERTEX.z), 0.0, 1.0);
+}
+"
+
+[sub_resource type="ShaderMaterial" id=10]
+shader = SubResource( 9 )
+shader_param/albedo = Color( 0, 0, 0, 0.501961 )
+shader_param/proximity_fade_distance = 0.0
+shader_param/proximity_fade_far_distance = 0.5
+shader_param/uv1_scale = Vector3( 1, 1, 1 )
+shader_param/uv1_offset = Vector3( 0, 0, 0 )
+shader_param/uv2_scale = Vector3( 1, 1, 1 )
+shader_param/uv2_offset = Vector3( 0, 0, 0 )
+shader_param/texture_albedo = ExtResource( 1 )
+
+[sub_resource type="BoxShape" id=13]
+extents = Vector3( 25, 1, 25 )
+
+[sub_resource type="OpenSimplexNoise" id=6]
+octaves = 9
+persistence = 1.0
+lacunarity = 4.0
+
+[sub_resource type="NoiseTexture" id=7]
+seamless = true
+noise = SubResource( 6 )
+
+[sub_resource type="SpatialMaterial" id=5]
+params_diffuse_mode = 1
+params_specular_mode = 4
+albedo_texture = SubResource( 7 )
+uv1_scale = Vector3( 64, 32, 32 )
+
+[sub_resource type="CubeMesh" id=2]
+material = SubResource( 5 )
+size = Vector3( 50, 2, 50 )
+
+[sub_resource type="CylinderMesh" id=11]
+
+[sub_resource type="SpatialMaterial" id=12]
+albedo_color = Color( 0.690196, 0.537255, 0.294118, 1 )
+
+[sub_resource type="CylinderShape" id=14]
+
+[node name="Spatial" type="Spatial"]
+
+[node name="Player" type="RigidBody" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 14 )
+mode = 2
+can_sleep = false
+script = ExtResource( 2 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Player"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0 )
+shape = SubResource( 15 )
+
+[node name="Capsule" type="MeshInstance" parent="Player"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0 )
+mesh = SubResource( 3 )
+skeleton = NodePath("../..")
+material/0 = SubResource( 4 )
+
+[node name="FakeStencilShadow" type="MeshInstance" parent="Player/Capsule"]
+transform = Transform( 0.755442, 0.982823, 0, -0.655216, 1.13316, 0, 0, 0, 0.001, 0.25, 0.25, 1.49 )
+mesh = SubResource( 18 )
+material/0 = SubResource( 19 )
+
+[node name="FakeShadowMap" type="MeshInstance" parent="Player/Capsule"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.3, 0.3, 1.49 )
+mesh = SubResource( 16 )
+material/0 = SubResource( 17 )
+
+[node name="Viewport" type="Viewport" parent="Player/Capsule/FakeShadowMap"]
+size = Vector2( 256, 256 )
+own_world = true
+transparent_bg = true
+
+[node name="Camera" type="Camera" parent="Player/Capsule/FakeShadowMap/Viewport"]
+
+[node name="MeshInstance" type="MeshInstance" parent="Player/Capsule/FakeShadowMap/Viewport"]
+transform = Transform( 1.01753, -1.28028e-08, 0.992071, -1.01753, -3.09086e-08, 0.992071, 1.84232e-08, -1, -4.33648e-08, 0, 0, -3 )
+mesh = SubResource( 20 )
+skeleton = NodePath("../Camera")
+material/0 = SubResource( 21 )
+
+[node name="BlobShadow" type="Spatial" parent="Player/Capsule"]
+visible = false
+script = ExtResource( 3 )
+
+[node name="RayCastNW" type="RayCast" parent="Player/Capsule/BlobShadow"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -1, -1, 1 )
+enabled = true
+cast_to = Vector3( 0, -5, 0 )
+
+[node name="RayCastNE" type="RayCast" parent="Player/Capsule/BlobShadow"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 1, -1, 1 )
+enabled = true
+cast_to = Vector3( 0, -5, 0 )
+
+[node name="RayCastSW" type="RayCast" parent="Player/Capsule/BlobShadow"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -1, 1, 1 )
+enabled = true
+cast_to = Vector3( 0, -5, 0 )
+
+[node name="RayCastSE" type="RayCast" parent="Player/Capsule/BlobShadow"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 1, 1, 1 )
+enabled = true
+cast_to = Vector3( 0, -5, 0 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Player/Capsule/BlobShadow"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 1.49 )
+mesh = SubResource( 8 )
+skeleton = NodePath("../..")
+material/0 = SubResource( 10 )
+
+[node name="Camera" type="Camera" parent="Player"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75, 10 )
+fov = 75.0
+near = 0.1
+far = 500.0
+
+[node name="Ground" type="StaticBody" parent="."]
+
+[node name="CollisionShape" type="CollisionShape" parent="Ground"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
+shape = SubResource( 13 )
+
+[node name="Ground" type="MeshInstance" parent="Ground"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
+mesh = SubResource( 2 )
+skeleton = NodePath("../..")
+material/0 = null
+
+[node name="Cylinder" type="StaticBody" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Cylinder"]
+mesh = SubResource( 11 )
+skeleton = NodePath("../../Ground/Ground")
+material/0 = SubResource( 12 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Cylinder"]
+shape = SubResource( 14 )
+
+[node name="Cylinder2" type="StaticBody" parent="."]
+transform = Transform( 1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 1, -6 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Cylinder2"]
+mesh = SubResource( 11 )
+skeleton = NodePath("../../Ground/Ground")
+material/0 = SubResource( 12 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Cylinder2"]
+shape = SubResource( 14 )
+
+[node name="Cylinder3" type="StaticBody" parent="."]
+transform = Transform( 1, 0, 0, 0, -5.96046e-08, 1, 0, -1, -5.96046e-08, 0, 1, 3.6 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Cylinder3"]
+mesh = SubResource( 11 )
+skeleton = NodePath("../../Ground/Ground")
+material/0 = SubResource( 12 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Cylinder3"]
+shape = SubResource( 14 )
+
+[node name="Cylinder4" type="StaticBody" parent="."]
+transform = Transform( 0.5, 0.866025, 5.16191e-08, 0, -5.96046e-08, 1, 0.866025, -0.5, -2.98023e-08, 0, -0.6, 7.6 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Cylinder4"]
+mesh = SubResource( 11 )
+skeleton = NodePath("../../Ground/Ground")
+material/0 = SubResource( 12 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Cylinder4"]
+shape = SubResource( 14 )
+
+[node name="Cylinder5" type="StaticBody" parent="."]
+transform = Transform( 0.5, 0.866025, 5.16191e-08, 0.75, -0.433013, 0.5, 0.433013, -0.25, -0.866025, -5, -0.3, 7.6 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Cylinder5"]
+mesh = SubResource( 11 )
+skeleton = NodePath("../../Ground/Ground")
+material/0 = SubResource( 12 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Cylinder5"]
+shape = SubResource( 14 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="."]
+transform = Transform( 0.404311, 0.58113, -0.706272, 0, 0.772202, 0.635377, 0.914622, -0.25689, 0.31221, -5.22905, 4.70416, 2.31152 )
+
+[node name="DirectionalLightFakeGI" type="DirectionalLight" parent="."]
+transform = Transform( -0.404311, -0.58113, 0.706273, 0, 0.772202, 0.635377, -0.914622, 0.25689, -0.31221, -3.22905, 4.70416, 2.31152 )
+light_energy = 0.2
