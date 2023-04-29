@@ -21,6 +21,7 @@ albedo_color = Color( 0, 0, 0, 0.501961 )
 [sub_resource type="PlaneMesh" id=16]
 
 [sub_resource type="ViewportTexture" id=22]
+flags = 4
 viewport_path = NodePath("Player/Capsule/FakeShadowMap/Viewport")
 
 [sub_resource type="SpatialMaterial" id=17]
@@ -136,9 +137,10 @@ mesh = SubResource( 16 )
 material/0 = SubResource( 17 )
 
 [node name="Viewport" type="Viewport" parent="Player/Capsule/FakeShadowMap"]
-size = Vector2( 256, 256 )
+size = Vector2( 128, 128 )
 own_world = true
 transparent_bg = true
+fxaa = true
 
 [node name="Camera" type="Camera" parent="Player/Capsule/FakeShadowMap/Viewport"]
 
@@ -149,7 +151,6 @@ skeleton = NodePath("../Camera")
 material/0 = SubResource( 21 )
 
 [node name="BlobShadow" type="Spatial" parent="Player/Capsule"]
-visible = false
 script = ExtResource( 3 )
 
 [node name="RayCastNW" type="RayCast" parent="Player/Capsule/BlobShadow"]
@@ -194,7 +195,6 @@ shape = SubResource( 13 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
 mesh = SubResource( 2 )
 skeleton = NodePath("../..")
-material/0 = null
 
 [node name="Cylinder" type="StaticBody" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )

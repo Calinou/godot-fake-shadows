@@ -10,6 +10,7 @@ config_version=4
 
 [application]
 
+config/name="Test Fake Shadows"
 run/main_scene="res://test.tscn"
 
 [input]
@@ -40,7 +41,12 @@ move_right={
  ]
 }
 
+[physics]
+
+common/physics_fps=120
+
 [rendering]
 
 quality/driver/driver_name="GLES2"
+quality/filters/anisotropic_filter_level=16
 quality/filters/use_fxaa=true
